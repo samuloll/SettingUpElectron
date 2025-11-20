@@ -167,15 +167,10 @@ Now navigate inside the electron folder and make a file named tsconfig.json with
 ```json
 {
   "compilerOptions": {
-    // require strict types (null-save)
     "strict": true,
-    // tell TypeScript to generate ESM Syntax
     "target": "ESNext",
-    // tell TypeScript to require ESM Syntax as input (including .js file imports)
     "module": "NodeNext",
-    // define where to put generated JS
     "outDir": "../../dist-electron",
-    // ignore errors from dependencies
     "skipLibCheck": true,
   }
 }
@@ -221,7 +216,6 @@ Make a file named electron-builder.json with the following content
 {
   "appId": "com.yourname.appname",
   "files": ["dist-electron", "dist-react"],
-  //This is needed somewhy only for window operating systems
   "icon": "./desktopIcon.png",
   "mac": {
     "target": "dmg"
