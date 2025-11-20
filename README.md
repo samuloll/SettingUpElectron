@@ -56,7 +56,7 @@ And with that we set up our vite server
 
 * Inside the src directory create an other named **ui**
     * place all of the items inside which were in the src <br/>
-    * ![Making the UI directory](/pics/src_ui)
+    * ![Making the UI directory](/pics/src_ui.png)
 
 * But with tha we also need to make change to the index.html
     * we have to change src from src/main.tsx to the following<br/>
@@ -83,7 +83,10 @@ export default defineConfig({
 ```
 
 * If we run the command *$ npm run build* this will make a seperate folder named dist-react
-* in the .gitignore put the following line *dist-react*
+* in the .gitignore put the following line 
+```
+dist-react
+```
     * if you aren't familiar with this, this only tells the git to ignore this directory when you commit
 
 >Fourth Command
@@ -136,7 +139,202 @@ export default defineConfig({
 And with that we are ready with electron
 ---
 
+# Setting Up typeScript
+
+
+* The project wich i was following doesn't use frontend so we have to congigure how we compile the code
+
+* Inside the tsconfig.sjon is this. This seperates *maybe* the frontend and the backend. So we have to go inside the *tsconfig.app.json*
+```json
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+```
+* Inside *tsconfig.app.json*
+    * At the end add this line
+    * *Note: i only use brackets so the markdown highligths this as a valid json code*
+```json
+{
+    "exclude": ["src/electron"],
+}
+```
+
+Now navigate inside the electron folder and make a file named tsconfig.json with the following content
+```json
+{
+  "compilerOptions": {
+    // require strict types (null-save)
+    "strict": true,
+    // tell TypeScript to generate ESM Syntax
+    "target": "ESNext",
+    // tell TypeScript to require ESM Syntax as input (including .js file imports)
+    "module": "NodeNext",
+    // define where to put generated JS
+    "outDir": "../../dist-electron",
+    // ignore errors from dependencies
+    "skipLibCheck": true,
+  }
+}
+```
+
+And now we can use typescript, so lets change our *main.js* file to *main.ts* and add this line
+```ts
+type test = string;
+``` 
+
+Inside the package.json we have to add this line
+```json
+{"scripts": {
+    "transpile:electron": "tsc --project src/electron/tsconfig.json",
+    }
+}
+```
+>Fifth Command
+>> $ npm run transpile:electron
+
+This created the dist-electron folder which contains a file named main.js, So inside the package.json we modifie this line
+```json
+{
+    "main": "dist-electron/main.js",
+}
+```
+
+So if we run the command *$ npm run dev:electron* it should work just fine
+
+Inside the .gitignore add this line
+```
+dist-electron
+```
+
+
+# Building the app
+
+> Sixth Command
+>> $ npm run --save-dev electron-builder
+
+Make a file named electron-builder.json with the following content
+```json
+{
+  "appId": "com.yourname.appname",
+  "files": ["dist-electron", "dist-react"],
+  //This is needed somewhy only for window operating systems
+  "icon": "./desktopIcon.png",
+  "mac": {
+    "target": "dmg"
+  },
+  "linux": {
+    "target": "AppImage",
+    "category": "Utility"
+  },
+  "win": {
+    "target": ["portable", "msi"]
+  }
+}
+```
+
+Inside the package.json add these lines
+```json
+{
+"scripts": {
+    "dist:mac": "npm run transpile:electron && npm run build && electron-builder --mac --arm64",
+    "dist:win": "npm run transpile:electron && npm run build && electron-builder --win --x64",
+    "dist:linux": "npm run transpile:electron && npm run build && electron-builder --linux --x64",
+    }
+}
+```
+
+> Seventh Command
+>> $ npm run dist:(your-op)
+
+And with that wqe should have creatied a desktop app
+
+# Faster Development
+
+> Eighth Command
+>> $ npm run --save-dev cross-env
+
+After running the command change the following line in package.json
+```json
+{
+"dev:electron": "cross-env NODE_ENV=development electron .",
+}
+```
+
+Inside the electron folder create a new file named util.ts
+
+
+```ts
+export function isDev(): boolean{
+    return process.env.NODE_ENV === 'development';
+}
+```
+
+Inside the vite.config.ts add the following lines
+```ts
+export default defineConfig({
+  plugins: [react()],
+  base: "./",
+  build: {
+    outDir: "dist-react",
+  },
+  server: {
+    port: 5123,
+    strictPort: true,
+  },
+})
+```
+
+* So if you run now *$ npm run dev:react* the port will be "http://localhost:5123/
+    * You can choose any port to your liking
 
 
 
 
+And modify the main.ts to the following
+
+```ts
+import {app, BrowserWindow} from 'electron';
+import path from 'path';
+import {isDev} from './util.js';
+
+
+type test = string;
+
+
+app.on('ready', () => {
+    const mainWindow = new BrowserWindow({});
+    if (isDev()){
+        mainWindow.loadURL("http://localhost:5123/");
+    }else{
+        mainWindow.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
+    }
+})
+```
+
+* now run *$ npm run dev:react* so the server starts, and run *$ npm run dev:electron*. And if everything checks out, if you modify the App.tsx it should appear in the electron
+
+But we can make it even better
+
+> Nineth Command
+>> $ npm i --save-dev npm-run-all
+
+This will allow us to run the server and the electron with one command. After its installed modify the package.json to the following
+```json
+{
+    "dev": "npm-run-all --parallel dev:react dev:electron",
+    "dev:electron": "npm run transpile:electron && cross-env NODE_ENV=development electron .",
+
+}
+```
+
+* And now if we run the *$ npm run dev* it should start the server and open electron
+    * We can verify by modifying the App.tsx
+
+
+---
+
+Now everything is ready to make the best app ever.
